@@ -98,7 +98,7 @@ head(X)
 Let the true loadings matrix, $\Lambda^*$ be a matrix with 2 columns and 3 rows. As we can see there is a sparsity pattern in the matrix with the first factor affecting only the first column and the second factor affecting the second and third columns of $X$. 
 
 ```{r}
-true_loadings <- read.csv("data/Lambda.csv") %>% 
+true_loadings <- read.csv("data/lambda.csv") %>% 
   rename(loadings_1 = V1, loadings_2 = V2)
 head(true_loadings)
 ```
