@@ -1,56 +1,368 @@
 ---
-title: "Example Quarto with OJS"
+title: "Introduction to l1rotation"
 format: html
 execute:
     echo: false
 ---
 
+```{r, packages}
+#| echo: false
+#| include: false
 
-This OJS example is available directly from https://quarto.org/docs/interactive/ojs/.
+library(dplyr)
+library(MASS)
+library(ggplot2)
+library(plotly)
+```
 
-```{ojs}
-data = FileAttachment("palmer-penguins.csv").csv({ typed: true })
+## Background and Intuition
+
+Factor models seek to distill often high dimensional data into a set of underlying or latent factors that  capture much of the original variation in the data. 
+
+We say the data, $X$, follows a **factor structure** if: 
+
+$$
+\begin{align}
+\underset{(n \times 1)}{X_{t}} &= \underset{(n \times r)}{\Lambda^{*}_{\vphantom{t}}} \underset{(r \times 1)}{F_t} + \underset{(n \times 1)}{e_{t}} \forall t, \qquad \text{or more compactly,} \qquad \underset{(T \times n)}{X} = \underset{(T \times r)}{F} \underset{(r \times n)}{\Lambda^{*'}}  + \underset{(T \times n)}{e} 
+\end{align}
+$$
+
+where there are 
+
+- $T$ rows (observations), 
+
+- $n$ columns (variables), and 
+
+- $r$ factors. And we can refer to 
+
+- $\lambda_{ik}$ as the entry in $\Lambda^{*T}$ in the $i$th row and $k$th column 
+
+This $\lambda_{ik}$ shows how factor $k$ is related to, or "loads onto," variable $i$. 
+
+Note that $r$ can be learned from the data (cite) so we can assume that $r$ is known. Next, we're interested in estimating a set of factors $F$, that compress the data into fewer columns, and loadings $\Lambda^*$, that show how the factors are related to the original columns. However, there is no unique $F$ and $\Lambda^*$ that satisfies the equation above. In fact, infinitely many will. This is referred to as rotational indeterminacy and it can pose issues in the interpretability of the loadings matrix. 
+
+
+### Problem: Rotational Indeterminacy 
+
+To see the problem, let $H$ be any nonsingular $r \times r$ matrix. We can define $\Lambda^0 = \Lambda^* (H^T)^{-1}$ and $F^0 = FH$. This tells us that 
+
+$$
+\begin{align}
+X & = F^0 \Lambda^{0'} \\
+& = FH (H^{-1'})^T \Lambda^{*'}\\
+& = FH H^{-1} \Lambda^{*'} \\
+& = F \Lambda^{*'}
+\end{align}
+$$
+
+Hence $X$ can be explained identically well by any "rotation" $H$ of the loadings and factors, and each rotation provides a different interpretation of how the factors and variables are related. So how can we find the correct interpretation?
+
+
+### Solution: Use Sparsity
+
+The key idea in Freyaldenhoven (2025) is that assuming a sparsity pattern in the true loadings matrix $\Lambda^*$ solves the issue of rotational indeterminacy since the sparsity pattern is not invariant to rotations. Intuitively, any rotation (or linear combination) of a sparse loading vector will be less sparse.   
+
+1. Linear combinations of sparse loading vectors are generally dense (mostly nonzero) 
+2. Therefore, there exists a linear combination of the estimated loading vectors that IS sparse!
+
+Assuming a certain amount of sparsity is fairly reasonable, particularly when we're interested in factors that are thought to affect only a subset of the original columns (i.e., local factors). Such factors are common in economic applications. 
+
+Given this, we can observe that the principal component estimator provides us estimates of the true loadings matrix 
+
+
+### Which norm to use?
+
+Now, how do we find this sparse linear combination of loading vectors?
+
+1. Take PCA as starting point to obtain $\Lambda^0$
+2. Find loadings $\Lambda^*$ equal to the rotation of $\Lambda^0$ that minimizes the number of non-zero elements (the $l_0$ norm) in the loading vectors
+
+However, the $l_0$ norm is often infeasible to optimize over in practice. To see this, each point in the figure below is a vector in which the length held fixed as we traverse the unit circle. The distance from the origin to each point shows the size of each norm, with the red points being the $l_0$ norm, the blue dots the $l_1$ norm and the grey dots the $l_2$ norm. 
+
+
+![Geometric Intuition of Various Norms](images/geom_intuition.png)
+
+Even though the $l_0$ norm directly computes the number of nonzero elements, the $l_1$ norm is minimized at the same points as the $l_0$ norm. But it has the added advantage of being much easier to optimize over, comparing the smooth descent of the blue dots toward the point (0, 1) from either side, to the discontinuity that occurs as the red points approach (0, 1). 
+
+So throughout, we'll continue, swapping the $l_1$ norm for the $l_0$ for these optimization benefits. 
+
+### A simple example
+
+Let's consider a dataset we can visualize fully: we'll use the following simulated data that has three columns ($n = 3$) and read it in as `X` and suppose we know that there are two factors, $r = 2$. Below only the first 6 rows are printed, but there are 224 rows total.
+
+```{r}
+X <- read.csv("data/data.csv")
+head(X)
+```
+
+Let the true loadings matrix, $\Lambda^*$ be a matrix with 2 columns and 3 rows. As we can see there is a sparsity pattern in the matrix with the first factor affecting only the first column and the second factor affecting the second and third columns of $X$. 
+
+```{r}
+true_loadings <- read.csv("data/Lambda.csv") %>% 
+  rename(loadings_1 = V1, loadings_2 = V2)
+head(true_loadings)
+```
+
+Now, let's look at the PCA estimator for $X$ for the first two principal components, which are much more dense than the true loading vectors above - the zeroes are no longer present. But, the principal component estimate still provides a great starting point as they will generally be linear combinations of the true loading vectors. 
+
+```{r}
+pca_loadings <- read.csv('data/lambda0.csv') %>% 
+    rename(loadings_1 = V1, loadings_2 = V2)
+
+head(pca_loadings)
+```
+
+
+Using these PCA vectors as a starting point, let's visualize all of the data. Below is an interactive visualization of 
+
+- the data points in $X$, 
+- the subspace spanned by the principal components (the blue plane)
+- the principal component vectors (yellow)
+- the true loadings vectors (maroon)
+
+
+
+
+```{r}
+source("helper_functions.R")
+source("obj_function_plot.R")
 ```
 
 
 ```{ojs}
-viewof bill_length_min = Inputs.range(
-  [32, 50], 
-  {value: 35, step: 1, label: "Bill length (min):"}
+// Load Observable libraries
+math = require('https://cdnjs.cloudflare.com/ajax/libs/mathjs/1.5.2/math.min.js')
+d3 = require("d3@3")
+//functionPlot = require("https://unpkg.com/function-plot@1/dist/function-plot.js")
+
+THREE = {
+  const THREE = window.THREE = await require("three@0.130.0/build/three.min.js");
+  await require("three@0.130.0/examples/js/controls/OrbitControls.js").catch(() => {});
+  return THREE;
+}
+```
+
+
+
+```{ojs}
+renderer.domElement
+```
+
+
+
+```{ojs}
+//| panel: input
+//| layout-ncol: 2
+viewof theta_value = Inputs.range(
+  [-3.13, 3.13], 
+  {value: 1.57, step: .01, label: "Vector 1 angle (theta):"}
 )
-viewof islands = Inputs.checkbox(
-  ["Torgersen", "Biscoe", "Dream"], 
-  { value: ["Torgersen", "Biscoe"], 
-    label: "Islands:"
-  }
+
+viewof theta_value2 = Inputs.range(
+  [-3.13, 3.13], 
+  {value: 3.13, step: .01, label: "Vector 2 angle (theta):"}
 )
 ```
 
 
 ```{ojs}
-filtered = data.filter(function(penguin) {
-  return bill_length_min < penguin.bill_length_mm &&
-         islands.includes(penguin.island);
+//| panel: fill
+//| 
+
+highlighted_points = obj_data.filter(function(penguin) {
+  return (theta_value - 0.005 < penguin.theta && theta_value + 0.005 > penguin.theta) ||
+         (theta_value2 - 0.005 < penguin.theta && theta_value2 + 0.005 > penguin.theta)
 })
+
+obj_data = FileAttachment("data/obj_function_data.csv").csv({typed: true});
+
+Plot.plot({
+  height: 100,
+  width: 700,
+  grid: true,
+  marks: [
+    Plot.dot(obj_data, {
+      x: "theta", 
+      y: "y",
+      r: 1
+    }),
+    Plot.dot(highlighted_points, {
+      x: "theta", 
+      y: "y", 
+      fill: "orange", 
+      r: 5
+    })
+  ],
+  y: {
+    label: ""
+  },
+  title: "Objective function",
+  style: {
+    background: "transparent",
+    fontSize: 12
+  }
+})
+
 ```
 
-```{ojs}
-Plot.rectY(filtered, 
-  Plot.binX(
-    {y: "count"}, 
-    {x: "body_mass_g", fill: "species", thresholds: 20}
-  ))
-  .plot({
-    facet: {
-      data: filtered,
-      x: "sex",
-      y: "species",
-      marginRight: 80
-    },
-    marks: [
-      Plot.frame(),
-    ]
-  }
-)
+```{ojs, camera-setup}
+
+height = 500;
+camera = {
+  const fov = 45;
+  const aspect = width / height;
+  const near = 1;
+  const far = 1000;
+  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera.position.set(2, 2, -2)
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+  return camera;
+}
+axesHelper = {const axesHelper = new THREE.AxesHelper( 5 );
+return axesHelper;
+}
+
+gridHelper = {const size = 10;
+const divisions = 10;
+
+const gridHelper = new THREE.GridHelper( size, divisions );
+return gridHelper;
+}
+
+renderer = {
+  const renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(devicePixelRatio);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.addEventListener("change", () => renderer.render(scene, camera));
+  invalidation.then(() => (controls.dispose(), renderer.dispose()));
+  return renderer;
+}
 ```
+
+
+```{ojs, objects}
+pca_vectors = await FileAttachment('data/lambda0.csv').csv({typed: true})
+true_vectors = await FileAttachment('data/truth_normal.csv').csv({typed: true})
+
+
+display_arrow = {const dir = new THREE.Vector3( pca_vectors[0].V1, pca_vectors[1].V1, pca_vectors[2].V1);
+
+//normalize the direction vector (convert to vector of length 1)
+dir.normalize();
+
+const origin = new THREE.Vector3( 0, 0, 0 );
+const length = 1;
+const hex = 0xFFA500;
+
+const arrowHelper = new THREE.ArrowHelper( dir, origin, length, hex );
+return arrowHelper;
+        }
+        
+display_arrow2 = {const dir = new THREE.Vector3( pca_vectors[0].V2, pca_vectors[1].V2, pca_vectors[2].V2);
+
+//normalize the direction vector (convert to vector of length 1)
+dir.normalize();
+
+const origin = new THREE.Vector3( 0, 0, 0 );
+const length = 1;
+const hex = 0xFFA500;
+
+const arrowHelper = new THREE.ArrowHelper( dir, origin, length, hex );
+return arrowHelper;
+        }
+        
+        
+true_vector1 = {const dir = new THREE.Vector3( true_vectors[0].V1, true_vectors[1].V1, true_vectors[2].V1);
+
+//normalize the direction vector (convert to vector of length 1)
+dir.normalize();
+
+const origin = new THREE.Vector3( 0, 0, 0 );
+const length = 1;
+const hex = 0x0000FF;
+
+const arrowHelper = new THREE.ArrowHelper( dir, origin, length, hex );
+return arrowHelper;
+        }
+        
+true_vector2 = {const dir = new THREE.Vector3( true_vectors[0].V2, true_vectors[1].V2, true_vectors[2].V2);
+
+//normalize the direction vector (convert to vector of length 1)
+dir.normalize();
+
+const origin = new THREE.Vector3( 0, 0, 0 );
+const length = 1;
+const hex = 0x0000FF;
+
+const arrowHelper = new THREE.ArrowHelper( dir, origin, length, hex );
+return arrowHelper;
+        }
+        
+        
+        
+math_plane = {
+  const v1 = new THREE.Vector3( pca_vectors[0].V1, pca_vectors[1].V1, pca_vectors[2].V1 )
+  const v2 = new THREE.Vector3( pca_vectors[0].V2, pca_vectors[1].V2, pca_vectors[2].V2 )
+  const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
+  const plane = new THREE.Plane(normal);
+  const helper = new THREE.PlaneHelper( plane, 2, 0x0000FF );
+  return helper;
+  
+}       
+
+
+
+points = {
+  const data = await FileAttachment('data/data.csv').csv({typed: true});
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(data.flatMap(d => [d.V1, d.V2, d.V3]));
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+  const material = new THREE.PointsMaterial({color: 0x000000, size: 0.1});
+  const points = new THREE.Points(geometry, material);
+  return points
+}
+
+
+```
+
+
+```{ojs, scene}
+scene = {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
+  scene.add(gridHelper);
+  scene.add(axesHelper);
+  scene.add(display_arrow);
+  scene.add(display_arrow2);
+  scene.add(true_vector1);
+  scene.add(true_vector2);
+  scene.add(math_plane);
+  scene.add(points);
+  return scene;
+}
+
+{const normal = math_plane.plane.normal;
+const rotation_matrix = new THREE.Matrix4().makeRotationAxis(normal, theta_value);
+const new_direction = new THREE.Vector3(pca_vectors[0].V1, pca_vectors[1].V1, pca_vectors[2].V1).normalize().applyMatrix4(rotation_matrix);
+display_arrow.setDirection(new_direction);             
+renderer.render(scene, camera);
+yield null;
+}
+
+{const normal = math_plane.plane.normal;
+const rotation_matrix = new THREE.Matrix4().makeRotationAxis(normal, theta_value2);
+const new_direction = new THREE.Vector3(pca_vectors[0].V2, pca_vectors[1].V2, pca_vectors[2].V2).normalize().applyMatrix4(rotation_matrix);
+display_arrow2.setDirection(new_direction);             
+renderer.render(scene, camera);
+yield null;
+
+}
+
+
+```
+
+
+
 
