@@ -1,5 +1,5 @@
 ---
-title: "Introduction to l1rotation"
+title: "Background and Intuition"
 format: html
 execute:
     echo: false
@@ -15,7 +15,7 @@ library(ggplot2)
 library(plotly)
 ```
 
-## Background and Intuition
+## Factor Models Primer
 
 Factor models seek to distill often high dimensional data into a set of underlying or latent factors that  capture much of the original variation in the data. 
 
