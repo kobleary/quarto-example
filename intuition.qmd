@@ -35,7 +35,7 @@ where there are
 
 - $r$ factors. And we can refer to 
 
-- $\lambda_{ik}$ as the entry in $\Lambda^{*T}$ in the $i$th row and $k$th column 
+- $\lambda_{ik}$ as the entry in $\Lambda^{*'}$ in the $i$th row and $k$th column 
 
 This $\lambda_{ik}$ shows how factor $k$ is related to, or "loads onto," variable $i$. 
 
@@ -63,7 +63,9 @@ Hence $X$ can be explained identically well by any "rotation" $H$ of the loading
 The key idea in Freyaldenhoven (2025) is that assuming a sparsity pattern in the true loadings matrix $\Lambda^*$ solves the issue of rotational indeterminacy since the sparsity pattern is not invariant to rotations. Intuitively, any rotation (or linear combination) of a sparse loading vector will be less sparse.  In general, with PCA we can obtain estimates that are a linear combination of the true loadings vectors. That is, we can obtain principal component vectors in the columns of $\Lambda^0$ such that 
 
 $$
+\begin{align}
 \Lambda^0 = \Lambda^*(H^{-1})' + \epsilon
+\end{align}
 $$
 where $H$ is as above. 
 
@@ -96,8 +98,9 @@ So throughout, we'll continue to maximize sparsity indirectly, but more easily b
 Formally, using the $l_1$ norm, our objective function becomes 
 
 $$
+\begin{align}
 \min_R ||\Lambda^0R||
-
+\end{align}
 $$
 such that $R$ is nonsingular and $||r_k||_2 = 1$ where $r_k$ is a row in $R$. This ensures we look only at rotations of each initial loading vector, keeping the length of each loading vector fixed. 
 
@@ -145,6 +148,7 @@ Using the sliders below which control the angle of rotation for each vector sepa
 
 Since $n = 3$ is small, we can see there is some noise in the PC estimate, resulting in the loading vectors being located slightly off of this plane. Still, we can get a better estimate of the true vectors by rotating.
 
+As we try different angles of rotation out we can see their impact on the objective function we're optimizing over. The rotation that best aligns with the true loadings vectors should also occur at the local minima of the objective function. 
 
 ```{r}
 source("helper_functions.R")
@@ -170,8 +174,6 @@ THREE = {
 ```{ojs}
 renderer.domElement
 ```
-
-As we try different angles of rotation out we can see their impact on the objective function we're optimizing over. The rotation that best aligns with the true loadings vectors should also occur at the local minima of the objective function. 
 
 
 ```{ojs}
