@@ -223,12 +223,12 @@ window.Quarto = {
 <p>The <code>l1rotation</code> package offers functionality to estimate the loadings matrix in factor models based on the l1-rotation criterion following <a href="https://simonfreyaldenhoven.github.io/papers/factor_rotation.pdf">Freyaldenhoven (2025)</a>. The key idea of this estimator is assuming a sparsity pattern in the loadings matrix solves the problem of rotational indeterminacy inherent to factor models.</p>
 <p>Factor models take the form</p>
 <p><span class="math display">\[
-X = F \Lambda^{*T} + e
+X = F \Lambda^{*'} + e
 \]</span> where</p>
 <ul>
 <li><p><span class="math inline">\(X\)</span> is a <span class="math inline">\(T \times n\)</span> data matrix, where there are <span class="math inline">\(T\)</span> rows and <span class="math inline">\(n\)</span> variables, or columns</p></li>
 <li><p><span class="math inline">\(F\)</span> is a <span class="math inline">\(T \times r\)</span> matrix of <span class="math inline">\(r\)</span> factors that the data is decomposed into</p></li>
-<li><p><span class="math inline">\(\Lambda^{*T}\)</span> is an <span class="math inline">\(r \times n\)</span> matrix of true loadings</p></li>
+<li><p><span class="math inline">\(\Lambda^{*'}\)</span> is an <span class="math inline">\(r \times n\)</span> matrix of true loadings</p></li>
 <li><p><span class="math inline">\(e\)</span> is a <span class="math inline">\(T \times n\)</span> error matrix.</p></li>
 </ul>
 <p>This package is designed to identify and estimate <span class="math inline">\(\Lambda^{*}\)</span> subject to additional sparsity assumptions detailed in <a href="https://simonfreyaldenhoven.github.io/papers/factor_rotation.pdf">Freyaldenhoven (2025)</a>.</p>
@@ -315,7 +315,7 @@ X = F \Lambda^{*T} + e
 \mathcal{L(\hat{\Lambda})} = \max_k\left(\sum_{i=1}^n 1\{\hat{|\lambda}_{ik}| &lt; h_n \}\right)
 \]</span> With this number, we can then check whether the number of “small” loadings is larger than <span class="math inline">\(\gamma n\)</span></p>
 <p><span class="math display">\[
-\text{has_local_factors} = 1\{\mathcal{L}(\hat{\Lambda})  \geq \gamma n \}.
+has\_local\_factors = 1\{\mathcal{L}(\hat{\Lambda})  \geq \gamma n \}.
 \]</span></p>
 <p>Returning to our <code>lf</code> results, we can take a look at the value of <code>has_local_factors</code>.</p>
 <div class="cell" data-layout-align="center">
