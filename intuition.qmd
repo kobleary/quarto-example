@@ -3,6 +3,8 @@ title: "Background and Intuition"
 format: html
 execute:
     echo: false
+    warning: false
+    message: false
 ---
 
 ```{r, packages}
@@ -88,9 +90,9 @@ Unfortunately, the $l_0$ norm is infeasible to optimize over in practice. To see
 
 ![Geometric Intuition of Various Norms](images/geom_intuition.png)
 
-The $l_0$ norm directly computes the number of nonzero elements, shown by the red discontinuities at (1,0), (0,1), (-1,0) and (0, -1).  From the blue dots, we can see that the $l_1$ norm is also minimized at the same points as the $l_0$ norm. But the $l_1$ norm has a much smoother descent to the above four points compared with the discontinuities that occur with the red points. This smoother function is much easier to traverse and optimize over.
+The $l_0$ norm directly computes the number of nonzero elements, shown by the red points at (1, 0), (0, 1), (-1, 0) and (0, -1) that are each a distance of 1 away from the origin. The remaining red points are a distance of 2 away from the origin corresponding to the 2 nonzero elements in all other points along the unit circle.  Since the blue and red dots coincide at the above four points, the $l_1$ norm is minimized at the same points as the $l_0$ norm. But the $l_1$ norm has a much smoother descent to these minima compared with the discontinuities that occur with the red points. This smooth function is easier to traverse and optimize over.
 
-So throughout, we'll continue to maximize sparsity indirectly, but more easily by swapping the $l_1$ norm for the $l_0$ norm for the optimization benefits. 
+So throughout, we'll continue to maximize sparsity indirectly but more easily by swapping the $l_1$ norm for the $l_0$ norm for the optimization benefits. 
 
 
 ### Objective Function
